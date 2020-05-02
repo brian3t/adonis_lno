@@ -29,3 +29,8 @@ Run the following command to run startup migrations.
 ```js
 adonis migration:run
 ```
+
+Serving LNO:
+Console app:
+- pull first youtube link and populate into bands
+- 

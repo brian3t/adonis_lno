@@ -4,6 +4,10 @@
 const Model = use('Model')
 
 class Band extends Model {
+  static get table () {
+    return 'band'
+  }
+
 }
 
 module.exports = Band
