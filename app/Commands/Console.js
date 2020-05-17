@@ -18,8 +18,8 @@ class Console extends Command {
     // const LIMIT = 1
     const LIMIT = 50
     const Band = use('App/Models/Band')
-    const band_db=Database.table('band')
-    let all_bands = await band_db.select('id','name','ytlink_first').where('ytlink_first', null).limit(LIMIT)
+    const BAND_DB=Database.table('band')
+    let all_bands = await BAND_DB.select('id','name','ytlink_first').where('ytlink_first', null).limit(LIMIT)
     let yt_first_vid = {vid_id:null, thumbnail: null}
     let updated = 0
     for (const band of all_bands) {
