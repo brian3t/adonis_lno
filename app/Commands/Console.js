@@ -14,7 +14,8 @@ class Console extends Command {
   }
 
   async handle (args, options) {
-    const LIMIT = 1
+    // const LIMIT = 1
+    const LIMIT = 9999
     const Band = use('App/Models/Band')
     const band_db=Database.table('band')
     let all_bands = await band_db.select('id','name','ytlink_first').where('ytlink_first', null).limit(LIMIT)

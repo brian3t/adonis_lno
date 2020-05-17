@@ -1,6 +1,7 @@
 'use strict'
 const {google} = require('googleapis')
-const YOUTUBE_PK='AIzaSyDthANcEwY313X8P27E1SE_CHvq3M_f0CE'
+// const YOUTUBE_PK='AIzaSyDthANcEwY313X8P27E1SE_CHvq3M_f0CE'
+const YOUTUBE_PK='AIzaSyD4aB9qEEHdmkYe5rX5INjU3UxkawaiUyo'
 
 class Google {
   /**
@@ -30,6 +31,7 @@ class Google {
     let first_vid = res.data.items
     if (!first_vid){ return null }
     first_vid=first_vid.pop()
+    if (!first_vid || !first_vid.id || !first_vid.id.videoId) return null
     let vid_id = first_vid.id.videoId
     if (!vid_id){ return null }
     let thumbnail = null
