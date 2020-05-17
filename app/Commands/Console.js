@@ -11,7 +11,7 @@ class Console extends Command {
   }
 
   static get description () {
-    return 'Tell something helpful about this command'
+    return 'LNO console. Runs google service to get Youtube first video'
   }
 
   async handle (args, options) {
@@ -19,7 +19,7 @@ class Console extends Command {
     const LIMIT = 50
     const Band = use('App/Models/Band')
     const BAND_DB=Database.table('band')
-    let all_bands = await BAND_DB.select('id','name','ytlink_first').where('ytlink_first', null).limit(LIMIT)
+    let all_bands = await BAND_DB.select('id','name','ytlink_first').where('ytlink_first', null).orderBy('created_at', 'desc').limit(LIMIT)
     let yt_first_vid = {vid_id:null, thumbnail: null}
     let updated = 0
     for (const band of all_bands) {
