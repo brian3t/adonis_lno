@@ -1,6 +1,6 @@
-# Adonis fullstack application
+# LiveNOut Adonis fullstack application
 
-This is the fullstack boilerplate for AdonisJs, it comes pre-configured with.
+This is the fullstack app for AdonisJs LiveNOut, it comes pre-configured with.
 
 1. Bodyparser
 2. Session
@@ -12,8 +12,8 @@ This is the fullstack boilerplate for AdonisJs, it comes pre-configured with.
 8. Migrations and seeds
 
 ## Setup
-
-Use the adonis command to install the blueprint
+- Add .env file to determine db settings, etc..
+- Use the adonis command to install the blueprint
 
 ```bash
 adonis new yardstick
@@ -32,5 +32,5 @@ adonis migration:run
 
 Serving LNO:
 Console app:
-- pull first youtube link and populate into bands
+- pull first youtube link and populate into bands: node ace, then choose console 
 - 

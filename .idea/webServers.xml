@@ -9,6 +9,13 @@
           </advancedOptions>
         </fileTransfer>
       </webServer>
+      <webServer id="8aaced4f-9881-4426-8c8c-b0c4e851b200" name="usv lnoadonis" url="http://usvsolutions.com">
+        <fileTransfer rootFolder="/lnoad" host="usvsolutions.com" port="21">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" showHiddenFiles="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
     </option>
   </component>
 </project>

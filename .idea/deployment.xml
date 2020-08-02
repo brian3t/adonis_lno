@@ -1,8 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" serverName="usv" preserveTimestamps="false">
+  <component name="PublishConfigData" serverName="usv lnoadonis" preserveTimestamps="false">
     <serverData>
       <paths name="usv">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/lnoad" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="usv lnoadonis">
         <serverdata>
           <mappings>
             <mapping deploy="/lnoad" local="$PROJECT_DIR$" web="/" />
