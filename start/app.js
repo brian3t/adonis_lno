@@ -58,6 +58,7 @@ const aliases = {}
 */
 const commands = [
   'App/Commands/Console',
+  'App/Commands/Scrape',
 ]
 
 module.exports = { providers, aceProviders, aliases, commands }
