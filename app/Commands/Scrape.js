@@ -22,8 +22,9 @@ class Scrape extends Command {
 
     // /** @type {typeof import('@adonisjs/lucid/src/Database')} */
     const EVENT_DB = Database.table('event as e')
-    let all_evs_wo_band_qb = await EVENT_DB.select('e.id AS eventid', 'e.source', 'be.id AS bandevid').leftOuterJoin('band_event as be', 'e.id', 'event_id')
+    let all_evs_wo_band_qb = await EVENT_DB.select('e.id AS eventid', 'e.source', 'be.id AS bandevid', 'e.').leftOuterJoin('band_event as be', 'e.id', 'event_id')
       .where('source', 'sdr').andWhere('be.id', null).orderBy('e.created_at', 'desc').limit(LIMIT)
+
     console.log(`grabbed all sdr events without band`)
     Database.close()
     return ''
