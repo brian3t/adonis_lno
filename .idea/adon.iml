@@ -8,5 +8,6 @@
     <orderEntry type="library" name="adonis" level="project" />
     <orderEntry type="library" name="adonis db" level="project" />
     <orderEntry type="library" name="knex" level="project" />
+    <orderEntry type="library" name="@types/cheerio" level="application" />
   </component>
 </module>

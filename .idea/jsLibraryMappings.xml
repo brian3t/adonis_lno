@@ -2,6 +2,6 @@
 <project version="4">
   <component name="JavaScriptLibraryMappings">
     <file url="file://$PROJECT_DIR$" libraries="{Node.js Core}" />
-    <file url="PROJECT" libraries="{adonis, adonis db, knex}" />
+    <file url="PROJECT" libraries="{@types/cheerio, adonis, adonis db, knex}" />
   </component>
 </project>
