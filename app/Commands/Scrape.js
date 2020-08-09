@@ -24,8 +24,8 @@ class Scrape extends Command {
   }
 
   async handle(){
-    const LIMIT = 1
-    // const LIMIT = 50
+    // const LIMIT = 1
+    const LIMIT = 50
     /** @type {typeof import('@adonisjs/lucid/src/Lucid/Model')} */
 
       // /** @type {typeof import('@adonisjs/lucid/src/Database')} */
@@ -66,14 +66,16 @@ class Scrape extends Command {
       let new_band = new Band()
       new_band.source = 'sdr'
       new_band.name = band_name
-      new_band.scrape_url = norm(SDR_ROOT + band_anchor.attr('href'))
-      let band_html = await axios.get(new_band.scrape_url)
-      $d = await cheerio.load(band_html.data)
-      let band_img = $d('a#lead-art__image').css('background-image')
-      band_img = norm(band_img.replace("url('", ''), {removeQueryParameters: [/.*/]})
-      new_band.logo = band_img
-      new_band.website = $d('div.main-content-column a:contains("Visit Website")').attr('href')
-      new_band.description = $d('div.main-content-column').text().replace('Sponsored', '').replace(/\n+/g, '\n')
+      if (band_anchor.attr('href')) {
+        new_band.scrape_url = norm(SDR_ROOT + band_anchor.attr('href'))
+        let band_html = await axios.get(new_band.scrape_url)
+        $d = await cheerio.load(band_html.data)
+        let band_img = $d('a#lead-art__image').css('background-image')
+        band_img = norm(band_img.replace("url('", ''), {removeQueryParameters: [/.*/]})
+        new_band.logo = band_img
+        new_band.website = $d('div.main-content-column a:contains("Visit Website")').attr('href')
+        new_band.description = $d('div.main-content-column').text().replace('Sponsored', '').replace(/\n+/g, '\n')
+      }
       let band_save_result = await new_band.save()
       if (! band_save_result) {
         console.error(`Error saving band ${band_name}`)
@@ -83,11 +85,11 @@ class Scrape extends Command {
       new_band_event.event_id = event_model.id
       new_band_event.band_id = new_band.id
       let be_save_result = await new_band_event.save()
-      if (! be_save_result){
+      if (! be_save_result) {
         console.error(`Error saving band_event ${new_band.id} ${event_model.id}`)
         continue
       }
-       num_saved++
+      num_saved++
       console.log(`Saved: event ${event_model.id} band ${band_name} . Total ${num_saved}`)
     }
     console.log(`grabbed all sdr events without band`)
