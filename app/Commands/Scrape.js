@@ -10,6 +10,7 @@ const norm = require('normalize-url')
 const Event = use('App/Models/Event')
 const Band = use('App/Models/Band')
 const BandEvent = use('App/Models/BandEvent')
+const Env = use('Env')
 
 const SDR_ROOT = 'https://www.sandiegoreader.com/'
 
@@ -24,8 +25,9 @@ class Scrape extends Command {
   }
 
   async handle(){
-    // const LIMIT = 1
-    const LIMIT = 50
+    // const LIMIT = 5
+    const LIMIT = 150
+    let node_env = Env.get('NODE_ENV')
     /** @type {typeof import('@adonisjs/lucid/src/Lucid/Model')} */
 
       // /** @type {typeof import('@adonisjs/lucid/src/Database')} */
@@ -33,13 +35,27 @@ class Scrape extends Command {
     const EVENT_QUERY = Database.table('event as e')
     let all_evs_wo_band_qb = await Event.query().select('e.id AS id', 'e.source', 'e.website', 'e.band_urls', 'be.id AS bandevid', 'e.sdr_name')
       .from('event as e').leftOuterJoin('band_event as be', 'e.id', 'event_id')
-      .where('source', 'sdr').andWhere('be.id', null).orderBy('e.created_at', 'desc').limit(LIMIT)
+      .where('source', 'sdr').andWhere('be.id', null).andWhere('e.last_scraped_utc', null).orderBy('e.created_at', 'desc').limit(LIMIT)
       .fetch()
     let event_url = '', num_saved = 0
     var $c = {}, $d = {}
     for (const event_model of all_evs_wo_band_qb.rows) {
+      if (node_env === 'live') await sleep(8000)
       let event_url = SDR_ROOT + event_model.sdr_name
-      let html = await axios.get(event_url)
+      let html = {}
+      try {
+        let html = await axios.get(event_url)
+      } catch (e){
+        console.error(`axios error: ${e}`)
+        event_model.last_scraped_utc = (new Date())
+        event_model.save()
+        continue
+      }
+      if (html.status === 404){
+        event_model.last_scraped_utc = (new Date())
+        event_model.save()
+        continue
+      }
       $c = await cheerio.load(html.data)
       file.writeFile('public/ig_sdr_event.html', html.data, (err) => {
       })
@@ -49,6 +65,7 @@ class Scrape extends Command {
         let url = event_a.attr('href')
         if (url.startsWith('http') && event_model.website !== url) {
           event_model.website = url
+          event_model.last_scraped_utc = (new Date())
           event_model.save()
         }
       })
@@ -61,6 +78,8 @@ class Scrape extends Command {
       //find out if band exists
       let band_name = band_anchor.text()
       let exist_band = await Band.query().where('name', band_name).where('source', 'sdr').fetch()
+      event_model.last_scraped_utc = (new Date())
+      event_model.save()
       if (typeof exist_band !== 'object' || ! (exist_band.rows) || exist_band.rows.length > 0) continue
       //band doesn't exist; now scraping the band
       let new_band = new Band()
@@ -69,12 +88,14 @@ class Scrape extends Command {
       if (band_anchor.attr('href')) {
         new_band.scrape_url = norm(SDR_ROOT + band_anchor.attr('href'))
         let band_html = await axios.get(new_band.scrape_url)
-        $d = await cheerio.load(band_html.data)
-        let band_img = $d('a#lead-art__image').css('background-image')
-        band_img = norm(band_img.replace("url('", ''), {removeQueryParameters: [/.*/]})
-        new_band.logo = band_img
-        new_band.website = $d('div.main-content-column a:contains("Visit Website")').attr('href')
-        new_band.description = $d('div.main-content-column').text().replace('Sponsored', '').replace(/\n+/g, '\n')
+        if (band_html.status === 200) {
+          $d = await cheerio.load(band_html.data)
+          let band_img = $d('a#lead-art__image').css('background-image')
+          band_img = norm(band_img.replace("url('", ''), {removeQueryParameters: [/.*/]})
+          new_band.logo = band_img
+          new_band.website = $d('div.main-content-column a:contains("Visit Website")').attr('href')
+          new_band.description = $d('div.main-content-column').text().replace('Sponsored', '').replace(/\n+/g, '\n')
+        }
       }
       let band_save_result = await new_band.save()
       if (! band_save_result) {
@@ -94,6 +115,7 @@ class Scrape extends Command {
     }
     console.log(`grabbed all sdr events without band`)
     Database.close()
+    process.exit(1);
   }
 }
 
