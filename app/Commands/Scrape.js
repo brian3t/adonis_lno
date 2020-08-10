@@ -40,7 +40,7 @@ class Scrape extends Command {
     let event_url = '', num_saved = 0
     var $c = {}, $d = {}
     for (const event_model of all_evs_wo_band_qb.rows) {
-      if (node_env === 'live') await sleep(8000)
+      if (node_env === 'live') await setTimeout(()=>{}, 8000)
       let event_url = SDR_ROOT + event_model.sdr_name
       let html = {}
       try {
