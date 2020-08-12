@@ -25,8 +25,8 @@ class Scrape extends Command {
   }
 
   async handle(){
-    // const LIMIT = 5
-    const LIMIT = 150
+    const LIMIT = 1
+    // const LIMIT = 150
     let node_env = Env.get('NODE_ENV')
     /** @type {typeof import('@adonisjs/lucid/src/Lucid/Model')} */
 
@@ -40,19 +40,21 @@ class Scrape extends Command {
     let event_url = '', num_saved = 0
     var $c = {}, $d = {}
     for (const event_model of all_evs_wo_band_qb.rows) {
+      event_model.last_scraped_utc = (new Date())
+      event_model.save()
       // if (node_env === 'live') setTimeout(()=>{}, 8000)
       let event_url = SDR_ROOT + event_model.sdr_name
       let html = {}
       try {
-        let html = await axios.get(event_url)
-      } catch (e){
+        html = await axios.get(event_url)
+      } catch (e) {
         console.error(`axios error: ${e}`)
-        event_model.last_scraped_utc = (new Date())
+        event_model.scrape_msg = `Error get html`
         event_model.save()
         continue
       }
-      if (html.status === 404){
-        event_model.last_scraped_utc = (new Date())
+      if (html.status === 404) {
+        event_model.scrape_msg = `Error html status 404`
         event_model.save()
         continue
       }
@@ -70,17 +72,32 @@ class Scrape extends Command {
         }
       })
       let local_art = $c('h4:contains("Local artist page:")')
-      if (typeof local_art !== 'object') continue
+      if (typeof local_art !== 'object') {
+        event_model.scrape_msg = `Error no local artist page`
+        event_model.save()
+        continue
+      }
       let band_anchor = $c(local_art).next('div.image_grid').find('div.item strong > a')
-      if (typeof band_anchor !== 'object') continue
-      if (event_model.band_urls === band_anchor.attr('href')) continue
+      if (typeof band_anchor !== 'object') {
+        event_model.scrape_msg = `Error no band anchor`
+        event_model.save()
+        continue
+      }
+      if (event_model.band_urls === band_anchor.attr('href') || ! (band_anchor.attr('href'))) continue
       event_model.band_urls = band_anchor.attr('href')
       //find out if band exists
       let band_name = band_anchor.text()
+      if (! band_name) {
+        event_model.scrape_msg = `Error no band name`
+        event_model.save()
+        continue
+      }
       let exist_band = await Band.query().where('name', band_name).where('source', 'sdr').fetch()
-      event_model.last_scraped_utc = (new Date())
-      event_model.save()
-      if (typeof exist_band !== 'object' || ! (exist_band.rows) || exist_band.rows.length > 0) continue
+      if (typeof exist_band === 'object' && exist_band.rows && exist_band.rows.length > 0) {
+        event_model.scrape_msg = `Band exist`
+        event_model.save()
+        continue
+      }
       //band doesn't exist; now scraping the band
       let new_band = new Band()
       new_band.source = 'sdr'
@@ -99,7 +116,8 @@ class Scrape extends Command {
       }
       let band_save_result = await new_band.save()
       if (! band_save_result) {
-        console.error(`Error saving band ${band_name}`)
+        event_model.scrape_msg = `Error saving band`
+        event_model.save()
         continue
       }
       let new_band_event = new BandEvent()
@@ -107,11 +125,13 @@ class Scrape extends Command {
       new_band_event.band_id = new_band.id
       let be_save_result = await new_band_event.save()
       if (! be_save_result) {
-        console.error(`Error saving band_event ${new_band.id} ${event_model.id}`)
+        event_model.scrape_msg = `Error saving band_event ${new_band.id} ${event_model.id}`
+        event_model.save()
         continue
       }
       num_saved++
-      console.log(`Saved: event ${event_model.id} band ${band_name} . Total ${num_saved}`)
+      event_model.scrape_msg = `Success. Saved: event ${event_model.id} band ${band_name} . Total ${num_saved}`
+      event_model.save()
     }
     console.log(`grabbed all sdr events without band`)
     Database.close()
