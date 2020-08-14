@@ -111,7 +111,7 @@ class Scrape extends Command {
           band_img = norm(band_img.replace("url('", ''), {removeQueryParameters: [/.*/]})
           new_band.logo = band_img
           new_band.website = $d('div.main-content-column a:contains("Visit Website")').attr('href')
-          new_band.description = $d('div.main-content-column').text().replace('Sponsored', '').replace(/\n+/g, '\n').replace('Visit Website Share','')
+          new_band.description = $d('div.main-content-column').text().replace('Sponsored', '').replace(/\n+/g, '\n').replace('Visit Website','').replace('\nShare','')
         }
       }
       let band_save_result = await new_band.save()
