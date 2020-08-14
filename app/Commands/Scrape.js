@@ -25,8 +25,8 @@ class Scrape extends Command {
   }
 
   async handle(){
-    const LIMIT = 1
-    // const LIMIT = 150
+    // const LIMIT = 1
+    const LIMIT = 150
     let node_env = Env.get('NODE_ENV')
     /** @type {typeof import('@adonisjs/lucid/src/Lucid/Model')} */
 
@@ -65,7 +65,7 @@ class Scrape extends Command {
         let event_a = $c(related_link).find('a:contains("website")')
         if (typeof event_a !== 'object') return
         let url = event_a.attr('href')
-        if (url.startsWith('http') && event_model.website !== url) {
+        if (typeof url === 'string' && url.startsWith('http') && event_model.website !== url) {
           event_model.website = url
           event_model.last_scraped_utc = (new Date())
           event_model.save()
