@@ -20,8 +20,7 @@ class Scrape extends Command {
   }
 
   static get description(){
-    return 'LNO scraper. Scrape from SDR, bandmix, etc..' +
-      '08/02: scrape SDR for now'
+    return 'LNO scraper. Songkick'
   }
 
   async handle(){
