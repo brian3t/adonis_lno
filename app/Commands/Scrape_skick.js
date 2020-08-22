@@ -31,7 +31,9 @@ class Scrape_skick extends Command {
     const conf = require('./conf/songkick.json')
     let a = 1
 
-    for (let metro of conf){
+    for (let metro in conf){
+      if (!conf.hasOwnProperty(metro)) continue
+      let metro_conf = conf[metro]
       let a = 1
 
     }
