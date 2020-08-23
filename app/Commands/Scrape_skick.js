@@ -11,6 +11,7 @@ const Event = use('App/Models/Event')
 const Band = use('App/Models/Band')
 const BandEvent = use('App/Models/BandEvent')
 const Env = use('Env')
+const moment = require('moment')
 
 const TARGET_ROOT = 'https://www.songkick.com/metro-areas/'
 
@@ -31,8 +32,6 @@ class Scrape_skick extends Command {
     const conf = require('./conf/songkick.json')
     let node_env = Env.get('NODE_ENV')
     let url = '', num_saved = 0, html = {}
-    var $c = {}
-
     for (let metro in conf) {
       if (! conf.hasOwnProperty(metro)) continue
       let metro_conf = conf[metro]
@@ -47,10 +46,13 @@ class Scrape_skick extends Command {
         console.error(`Error html status 404`)
         continue
       }
-      $c = await cheerio.load(html.data)
+      const $ = await cheerio.load(html.data)
       file.writeFile('public/ig_skick_metro.html', html.data, (err) => {
       })
-      $c('li.event-listings-element').each(function (i, event_listing){
+      $('li.event-listings-element').each(function (i, ev_list){
+        if (typeof ev_list !== 'object' || ! ev_list.attribs || ! ev_list.attribs.title) return
+        let $ev_list = $(this)
+        let date = moment(ev_list.attribs.title)
         let a = 1
 
       })

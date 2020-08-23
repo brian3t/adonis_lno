@@ -30,6 +30,7 @@
     "cheerio": "^1.0.0-rc.3",
     "google-auth-library": "^6.0.0",
     "googleapis": "^49.0.0",
+    "moment": "^2.27.0",
     "mysql2": "^2.1.0",
     "normalize-url": "^5.1.0",
     "sleep": "^6.1.0",
