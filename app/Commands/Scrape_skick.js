@@ -50,9 +50,18 @@ class Scrape_skick extends Command {
       file.writeFile('public/ig_skick_metro.html', html.data, (err) => {
       })
       $('li.event-listings-element').each(function (i, ev_list){
+        const $ev_list = $(this)
+        let status = $ev_list.find('strong.item-state-tag')
+        if (status.text && status.text() === 'Canceled' || status.text() === 'Postponed') return
+        const ev = new Event()
         if (typeof ev_list !== 'object' || ! ev_list.attribs || ! ev_list.attribs.title) return
-        let $ev_list = $(this)
-        let date = moment(ev_list.attribs.title)
+        let date = moment(ev_list.attribs.title,'dddd DD MMMM YYYY')//Sunday 23 August 2020
+        if (date.isValid()){
+          ev.date = date.format('YYYY-MM-DD')
+        }
+        let artist_img = $ev_list.find('img.artist-profile-image')
+        if (artist_img) ev.img = artist_img.prop('src') ////assets.sk-static.com/assets/images/default_images/large_avatar/default-artist.a8e9d06fcef5440088394dacafbcf19a.png
+        // ??? need to pull ??? https://images.sk-static.com/images/media/profile_images/artists/10042834/large_avatar
         let a = 1
 
       })
