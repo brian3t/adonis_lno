@@ -12,7 +12,7 @@ const Band = use('App/Models/Band')
 const BandEvent = use('App/Models/BandEvent')
 const Env = use('Env')
 
-const SDR_ROOT = 'https://www.sandiegoreader.com/'
+const TARGET_ROOT = 'https://www.songkick.com/metro-areas/'
 
 class Scrape_skick extends Command {
   static get signature(){
@@ -20,8 +20,8 @@ class Scrape_skick extends Command {
   }
 
   static get description(){
-    return 'LNO scraper. Scrape from SDR, bandmix, etc..' +
-      '08/02: scrape SDR for now'
+    return 'LNO scraper. Scrape from SDR, bandmix, songkick, etc..' +
+      '08/22: scrape songkick'
   }
 
   async handle(){
@@ -29,14 +29,35 @@ class Scrape_skick extends Command {
     // const LIMIT = 150
     console.log(`scrape skick starting`)
     const conf = require('./conf/songkick.json')
-    let a = 1
+    let node_env = Env.get('NODE_ENV')
+    let url = '', num_saved = 0, html = {}
+    var $c = {}
 
-    for (let metro in conf){
-      if (!conf.hasOwnProperty(metro)) continue
+    for (let metro in conf) {
+      if (! conf.hasOwnProperty(metro)) continue
       let metro_conf = conf[metro]
+      url = TARGET_ROOT + metro
+      try {
+        html = await axios.get(url)
+      } catch (e) {
+        console.error(`axios error: ${e}`)
+        continue
+      }
+      if (html.status === 404) {
+        console.error(`Error html status 404`)
+        continue
+      }
+      $c = await cheerio.load(html.data)
+      file.writeFile('public/ig_skick_metro.html', html.data, (err) => {
+      })
+      $c('li.event-listings-element').each(function (i, event_listing){
+        let a = 1
+
+      })
       let a = 1
 
     }
   }
 }
+
 module.exports = Scrape_skick
