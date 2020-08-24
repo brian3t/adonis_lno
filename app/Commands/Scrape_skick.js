@@ -49,19 +49,29 @@ class Scrape_skick extends Command {
       const $ = await cheerio.load(html.data)
       file.writeFile('public/ig_skick_metro.html', html.data, (err) => {
       })
-      $('li.event-listings-element').each(function (i, ev_list){
+      let ev_name, ev_url
+      $('li.event-listings-element').each(async function (i, ev_list){
         const $ev_list = $(this)
+        if (typeof ev_list !== 'object' || ! ev_list.attribs || ! ev_list.attribs.title) return
         let status = $ev_list.find('strong.item-state-tag')
         if (status.text && status.text() === 'Canceled' || status.text() === 'Postponed') return
-        const ev = new Event()
-        if (typeof ev_list !== 'object' || ! ev_list.attribs || ! ev_list.attribs.title) return
-        let date = moment(ev_list.attribs.title,'dddd DD MMMM YYYY')//Sunday 23 August 2020
-        if (date.isValid()){
-          ev.date = date.format('YYYY-MM-DD')
-        }
+        let ev_date = moment(ev_list.attribs.title, 'dddd DD MMMM YYYY')//Sunday 23 August 2020
+        if (!(ev_date.isValid())) return
+        ev_name = $ev_list.find('a.event-link > span > strong')
+        if (! ev_name || typeof ev_name !== 'object') return
+        ev_name = ev_name.text()
+        const ev = await Event.findOrCreate(
+          {name: ev_name, source: 'skick'}
+          , {name: ev_name, source: 'skick'}
+        )
+        //model initiated
+
+        ev_url = $ev_list.find('a.event_link').attr('href')
+        if (ev_url) ev.url = `https://songkick.com` + ev_url
+
+        ev.date = ev_date.format('YYYY-MM-DD')
         let artist_img = $ev_list.find('img.artist-profile-image')
-        if (artist_img) ev.img = artist_img.prop('src') ////assets.sk-static.com/assets/images/default_images/large_avatar/default-artist.a8e9d06fcef5440088394dacafbcf19a.png
-        // ??? need to pull ??? https://images.sk-static.com/images/media/profile_images/artists/10042834/large_avatar
+        if (artist_img) ev.img = artist_img.data('src')
         let a = 1
 
       })
