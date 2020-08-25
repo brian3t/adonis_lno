@@ -8,6 +8,7 @@ const Database = use('Database')
 const file = require('fs')
 const norm = require('normalize-url')
 const Event = use('App/Models/Event')
+const Venue = use('App/Models/Venue')
 const Band = use('App/Models/Band')
 const BandEvent = use('App/Models/BandEvent')
 const Env = use('Env')
@@ -29,9 +30,9 @@ class Scrape_skick extends Command {
     const LIMIT = 1
     // const LIMIT = 150
     console.log(`scrape skick starting`)
-    const conf = require('./conf/songkick.json')
+    global.conf = require('./conf/songkick.json')
     let node_env = Env.get('NODE_ENV')
-    let url = '', num_saved = 0, html = {}
+    let url = '', num_saved = 0, num_saved_venue = 0, html = {}
     for (let metro in conf) {
       if (! conf.hasOwnProperty(metro)) continue
       let metro_conf = conf[metro]
@@ -56,13 +57,13 @@ class Scrape_skick extends Command {
         let status = $ev_list.find('strong.item-state-tag')
         if (status.text && status.text() === 'Canceled' || status.text() === 'Postponed') return
         let ev_date = moment(ev_list.attribs.title, 'dddd DD MMMM YYYY')//Sunday 23 August 2020
-        if (!(ev_date.isValid())) return
+        if (! (ev_date.isValid())) return
         ev_name = $ev_list.find('a.event-link > span > strong')
         if (! ev_name || typeof ev_name !== 'object') return
         ev_name = ev_name.text()
         const ev = await Event.findOrCreate(
           {name: ev_name, source: 'skick'}
-          , {name: ev_name, source: 'skick'}
+          , {name: ev_name, source: 'skick', scrape_status: 0, scrape_msg: 'skick init'}
         )
         //model initiated
 
@@ -72,12 +73,26 @@ class Scrape_skick extends Command {
         ev.date = ev_date.format('YYYY-MM-DD')
         let artist_img = $ev_list.find('img.artist-profile-image')
         if (artist_img) ev.img = artist_img.data('src')
-        let a = 1
-
+        let ven_link = $ev_list.find('a.venue-link')
+        if (ven_link && ven_link.text) {
+          let ven_name = ven_link.text()
+          if (ven_name) {
+            /** @type {typeof import('@adonisjs/lucid/src/Lucid/Model')} */
+            const ven = await Venue.findOrCreate({
+              name: ven_name, state: conf[metro].state, city: conf[metro].city
+            }, {name: ven_name, source: 'skick', state: conf[metro].state, city: conf[metro].city, scrape_status: 0, scrape_msg: 'skick init'})
+            ven.website = `https://songkick.com` + ven_link.attr('href')
+            ven.save()
+            num_saved_venue++
+            ev.venue_id = ven.id
+            ev.save() //link event with venue
+          }
+        }
+        ev.save()
+        num_saved++
       })
-      let a = 1
-
     }
+    console.log(`Scraped ${num_saved} events; ${num_saved_venue} venues.\n`)
   }
 }
 

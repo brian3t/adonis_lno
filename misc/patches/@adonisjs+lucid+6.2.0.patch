@@ -1,0 +1,37 @@
+diff --git a/node_modules/@adonisjs/lucid/src/Lucid/Model/index.js b/node_modules/@adonisjs/lucid/src/Lucid/Model/index.js
+index 28fdf07..88060b2 100644
+--- a/node_modules/@adonisjs/lucid/src/Lucid/Model/index.js
++++ b/node_modules/@adonisjs/lucid/src/Lucid/Model/index.js
+@@ -606,12 +606,29 @@ class Model extends BaseModel {
+       query.transacting(trx)
+     }
+ 
++    /**
++     * Get our connection
++     */
++    const config = ioc.use('Config');
++    const dbConfig = config.get('database');
++
++    // Connection is set in the model, if it's undefined then it's using the default connection
++    const client = this.connection ? dbConfig[this.connection].client : dbConfig[dbConfig['connection']].client;
++
+     /**
+      * Execute query
+      */
+-    const result = await query
+-      .returning(this.constructor.primaryKey)
+-      .insert(this.$attributes)
++    const returningClients = ['pg', 'mssql', 'oracledb'];
++
++    let result;
++    if (returningClients.includes(client)) {
++      result = await query
++        .returning(this.constructor.primaryKey)
++        .insert(this.$attributes)
++    } else {
++      result = await query
++        .insert(this.$attributes)
++    }
+ 
+     /**
+      * Only set the primary key value when incrementing is
