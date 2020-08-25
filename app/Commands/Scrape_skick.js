@@ -33,7 +33,7 @@ class Scrape_skick extends Command {
     global.conf = require('./conf/songkick.json')
     let node_env = Env.get('NODE_ENV')
     let url = '', num_saved = 0, num_saved_venue = 0, html = {}
-    for (let metro in conf) {
+    for (const metro in conf) {
       if (! conf.hasOwnProperty(metro)) continue
       let metro_conf = conf[metro]
       url = TARGET_ROOT + metro
@@ -67,9 +67,12 @@ class Scrape_skick extends Command {
         )
         //model initiated
 
-        ev_url = $ev_list.find('a.event_link').attr('href')
-        if (ev_url) ev.url = `https://songkick.com` + ev_url
-
+        ev_url = $ev_list.find('a.event-link').attr('href')
+        if (! ev_url) {
+          console.log(`event without url, skipped`);
+          return
+        }
+        ev.scrape_url = `https://songkick.com` + ev_url
         ev.date = ev_date.format('YYYY-MM-DD')
         let artist_img = $ev_list.find('img.artist-profile-image')
         if (artist_img) ev.img = artist_img.data('src')
@@ -81,7 +84,7 @@ class Scrape_skick extends Command {
             const ven = await Venue.findOrCreate({
               name: ven_name, state: conf[metro].state, city: conf[metro].city
             }, {name: ven_name, source: 'skick', state: conf[metro].state, city: conf[metro].city, scrape_status: 0, scrape_msg: 'skick init'})
-            ven.website = `https://songkick.com` + ven_link.attr('href')
+            ven.scrape_url = `https://songkick.com` + ven_link.attr('href')
             ven.save()
             num_saved_venue++
             ev.venue_id = ven.id
@@ -91,8 +94,12 @@ class Scrape_skick extends Command {
         ev.save()
         num_saved++
       })
+      console.log(`For metro ${metro}, we scraped ${num_saved} events; ${num_saved_venue} venues.\n`)
     }
-    console.log(`Scraped ${num_saved} events; ${num_saved_venue} venues.\n`)
+    // console.log(`Cleaning up: \n`)
+    // await Event.query().where('source','skick').where() .delete()
+    Database.close()
+    process.exit(1);
   }
 }
 
