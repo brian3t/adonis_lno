@@ -16,7 +16,7 @@ const moment = require('moment')
 
 const TARGET_ROOT = 'https://www.songkick.com/metro-areas/'
 
-class Scrape_skick extends Command {
+class Scrape_skick_deep extends Command {
   static get signature(){
     return 'scrape_skick_deep'
   }
@@ -29,14 +29,47 @@ class Scrape_skick extends Command {
   async handle(){
     const LIMIT = 1
     // const LIMIT = 150
-    console.log(`scrape skick starting`)
-    global.conf = require('./conf/songkick.json')
+    console.log(`scrape skick deep starting`)
     let node_env = Env.get('NODE_ENV')
     let url = '', num_saved = 0, num_saved_venue = 0, html = {}
     //deep scrape all events
+    const EV_DB = Database.table('event')
+    let all_evs = await Event.query().select('id', 'name', 'scrape_url').where('source', 'skick').where('scrape_status', 0)
+      .orderBy('created_at', 'desc').limit(LIMIT).fetch()
+    for (const ev of all_evs.rows) {
+      try {
+        html = await axios.get(ev.scrape_url)
+      } catch (e) {
+        console.error(`axios error: ${e}`)
+        continue
+      }
+      if (html.status === 404) {
+        console.error(`Error html status 404`)
+        continue
+      }
+      let $ = await cheerio.load(html.data)
+      let ev_model = await Event.find(ev.id)
+      if (typeof ev_model !== 'object') continue
+      file.writeFile('public/ig_skick_event_deep.html', html.data, (err) => {
+      })
+      $('div.additional-details-container p').each(async (i, p) => {
+        let $p = $(p)
+        if ($p.text().startsWith('Doors open:')) {
+          let door_open = $p.text().replace('Doors open: ', '') //20:30
+          if (moment(door_open, 'hh:mm', true)) {
+            // ev_model.start_time = door_open
+            // ev.scrape_status = 1 //asdf
+            if (ev_model.scrape_msg === undefined) ev_model.scrape_msg = ''
+            ev_model.scrape_msg += ' | starttime in'
+            let save_result = await ev_model.save()
+            let a = 1
+          }
+        }
+      })
+      let a = 1
 
+    }
 
-      console.log(`For metro ${metro}, we scraped ${num_saved} events; ${num_saved_venue} venues.\n`)
     // console.log(`Cleaning up: \n`)
     // await Event.query().where('source','skick').where() .delete()
     Database.close()
@@ -44,4 +77,4 @@ class Scrape_skick extends Command {
   }
 }
 
-module.exports = Scrape_skick
+module.exports = Scrape_skick_deep
