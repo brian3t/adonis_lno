@@ -33,9 +33,9 @@ class Scrape_skick_deep extends Command {
     let node_env = Env.get('NODE_ENV')
     let url = '', num_saved = 0, num_saved_venue = 0, html = {}
     //deep scrape all events
-    const EV_DB = Database.table('event')
     let all_evs = await Event.query().select('id', 'name', 'scrape_url').where('source', 'skick').where('scrape_status', 0)
       .orderBy('created_at', 'desc').limit(LIMIT).fetch()
+
     for (const ev of all_evs.rows) {
       try {
         html = await axios.get(ev.scrape_url)
@@ -47,21 +47,25 @@ class Scrape_skick_deep extends Command {
         console.error(`Error html status 404`)
         continue
       }
-      let $ = await cheerio.load(html.data)
-      let ev_model = await Event.find(ev.id)
+      let $c = await cheerio.load(html.data)
+      const ev_model = await Event.find(ev.id)
       if (typeof ev_model !== 'object') continue
       file.writeFile('public/ig_skick_event_deep.html', html.data, (err) => {
       })
-      $('div.additional-details-container p').each(async (i, p) => {
-        let $p = $(p)
+      $c('div.additional-details-container p').each(async (i, p) => {
+        let $p = $c(p)
         if ($p.text().startsWith('Doors open:')) {
           let door_open = $p.text().replace('Doors open: ', '') //20:30
           if (moment(door_open, 'hh:mm', true)) {
             // ev_model.start_time = door_open
             // ev.scrape_status = 1 //asdf
-            if (ev_model.scrape_msg === undefined) ev_model.scrape_msg = ''
-            ev_model.scrape_msg += ' | starttime in'
-            let save_result = await ev_model.save()
+            // if (ev_model.scrape_msg === undefined) ev_model.scrape_msg = ''
+            // ev_model.scrape_msg += ' | starttime in'
+            ev_model.scrape_msg='test'
+            await ev_model.save()
+            Database.close()
+            process.exit(1);
+
             let a = 1
           }
         }
