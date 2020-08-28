@@ -34,9 +34,12 @@ class Scrape_skick_deep extends Command {
     let url = '', num_saved = 0, num_saved_venue = 0, html = {}
     //deep scrape all events
     let all_evs = await Event.query().select('id', 'name', 'scrape_url').where('source', 'skick').where('scrape_status', 0)
+      .whereRaw('COALESCE(last_scraped_utc,\'1970-02-01\') < DATE_SUB(CURDATE(), INTERVAL 1 HOUR)')
       .orderBy('created_at', 'desc').limit(LIMIT).fetch()
 
     for (const ev of all_evs.rows) {
+      ev.last_scraped_utc = new Date()
+      await ev.save()
       try {
         html = await axios.get(ev.scrape_url)
       } catch (e) {
@@ -63,8 +66,6 @@ class Scrape_skick_deep extends Command {
             // ev_model.scrape_msg += ' | starttime in'
             ev_model.scrape_msg='test'
             await ev_model.save()
-            Database.close()
-            process.exit(1);
 
             let a = 1
           }
@@ -77,7 +78,6 @@ class Scrape_skick_deep extends Command {
     // console.log(`Cleaning up: \n`)
     // await Event.query().where('source','skick').where() .delete()
     Database.close()
-    process.exit(1);
   }
 }
 

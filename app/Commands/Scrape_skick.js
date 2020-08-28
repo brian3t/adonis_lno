@@ -48,58 +48,65 @@ class Scrape_skick extends Command {
         continue
       }
       const $ = await cheerio.load(html.data)
-      file.writeFile('public/ig_skick_metro.html', html.data, (err) => {
+      file.writeFileSync('public/ig_skick_metro.html', html.data, (err) => {
       })
       let ev_name, ev_url
-      $('li.event-listings-element').each(async function (i, ev_list){
-        const $ev_list = $(this)
-        if (typeof ev_list !== 'object' || ! ev_list.attribs || ! ev_list.attribs.title) return
-        let status = $ev_list.find('strong.item-state-tag')
-        if (status.text && status.text() === 'Canceled' || status.text() === 'Postponed') return
-        let ev_date = moment(ev_list.attribs.title, 'dddd DD MMMM YYYY')//Sunday 23 August 2020
-        if (! (ev_date.isValid())) return
-        ev_name = $ev_list.find('a.event-link > span > strong')
-        if (! ev_name || typeof ev_name !== 'object') return
-        ev_name = ev_name.text()
-        const ev = await Event.findOrCreate(
-          {name: ev_name, source: 'skick'}
-          , {name: ev_name, source: 'skick', scrape_status: 0, scrape_msg: 'skick init'}
-        )
-        //model initiated
+      try
+      {
+        $('li.event-listings-element').each(async function (i, ev_list){
+          const $ev_list = $(this)
+          if (typeof ev_list !== 'object' || ! ev_list.attribs || ! ev_list.attribs.title) return
+          let status = $ev_list.find('strong.item-state-tag')
+          if (status.text && status.text() === 'Canceled' || status.text() === 'Postponed') return
+          let ev_date = moment(ev_list.attribs.title, 'dddd DD MMMM YYYY')//Sunday 23 August 2020
+          if (! (ev_date.isValid())) return
+          ev_name = await $ev_list.find('a.event-link > span > strong')
+          if (! ev_name || typeof ev_name !== 'object') return
+          ev_name = ev_name.text()
+          if (! ev_name || typeof ev_name !== 'string' || ev_name === '') return
+          const ev = await Event.findOrCreate(
+            {name: ev_name, source: 'skick'}
+            , {name: ev_name, source: 'skick', scrape_status: 0, scrape_msg: 'skick init'}
+          )
+          //model initiated
 
-        ev_url = $ev_list.find('a.event-link').attr('href')
-        if (! ev_url) {
-          console.log(`event without url, skipped`);
-          return
-        }
-        ev.scrape_url = `https://songkick.com` + ev_url
-        ev.date = ev_date.format('YYYY-MM-DD')
-        let artist_img = $ev_list.find('img.artist-profile-image')
-        if (artist_img) ev.img = artist_img.data('src')
-        let ven_link = $ev_list.find('a.venue-link')
-        if (ven_link && ven_link.text) {
-          let ven_name = ven_link.text()
-          if (ven_name) {
-            /** @type {typeof import('@adonisjs/lucid/src/Lucid/Model')} */
-            const ven = await Venue.findOrCreate({
-              name: ven_name, state: conf[metro].state, city: conf[metro].city
-            }, {name: ven_name, source: 'skick', state: conf[metro].state, city: conf[metro].city, scrape_status: 0, scrape_msg: 'skick init'})
-            ven.scrape_url = `https://songkick.com` + ven_link.attr('href')
-            ven.save()
-            num_saved_venue++
-            ev.venue_id = ven.id
-            ev.save() //link event with venue
+          ev_url = await $ev_list.find('a.event-link').attr('href')
+          if (! ev_url) {
+            console.log(`event without url, skipped`);
+            return
           }
-        }
-        ev.save()
-        num_saved++
-      })
+          ev.scrape_url = `https://songkick.com` + ev_url
+          ev.date = ev_date.format('YYYY-MM-DD')
+          let artist_img = await $ev_list.find('img.artist-profile-image')
+          if (artist_img) ev.img = artist_img.data('src')
+          let ven_link = await $ev_list.find('a.venue-link')
+          if (ven_link && ven_link.text) {
+            let ven_name = ven_link.text()
+            if (ven_name) {
+              /** @type {typeof import('@adonisjs/lucid/src/Lucid/Model')} */
+              const ven = await Venue.findOrCreate({
+                name: ven_name, state: conf[metro].state, city: conf[metro].city
+              }, {name: ven_name, source: 'skick', state: conf[metro].state, city: conf[metro].city, scrape_status: 0, scrape_msg: 'skick init'})
+              ven.scrape_url = `https://songkick.com` + ven_link.attr('href')
+              await ven.save()
+              num_saved_venue++
+              ev.venue_id = ven.id
+              await ev.save() //link event with venue
+            }
+          }
+          await ev.save()
+          num_saved++
+          console.log(`num ev saved: ${num_saved} \n`)
+        })
+      } catch (e){
+        console.error(`error`, e)
+      }
       console.log(`For metro ${metro}, we scraped ${num_saved} events; ${num_saved_venue} venues.\n`)
     }
     // console.log(`Cleaning up: \n`)
     // await Event.query().where('source','skick').where() .delete()
     Database.close()
-    process.exit(1);
+    // process.exit()
   }
 }
 
