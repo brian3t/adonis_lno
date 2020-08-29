@@ -35,7 +35,7 @@ class Scrape_skick_deep extends Command {
     //deep scrape all events
     /** @type {typeof import('knex/lib/query/builder')} */
     const all_evs = await Event.query().select('id', 'name', 'scrape_url').where('source', 'skick').where('scrape_status', 0)
-    .whereRaw('COALESCE(last_scraped_utc,\'1970-01-01\') < DATE_SUB(CURDATE(), INTERVAL 1 HOUR)')
+      .whereRaw('COALESCE(last_scraped_utc,\'1970-01-01\') < DATE_SUB(CURDATE(), INTERVAL 1 HOUR)')
       // .where('name','Typesetter and Get Married') //asdf
       .orderBy('created_at', 'desc').limit(LIMIT).fetch()
 
@@ -73,7 +73,7 @@ class Scrape_skick_deep extends Command {
         }
       })
       let profile_img = await $c('img.profile-picture.event')
-      if (profile_img && typeof profile_img==='object'){
+      if (profile_img && typeof profile_img === 'object') {
         ev.img = $c(profile_img).data('src')
         await ev.save()
         console.log(`evmodel last updated`, ev.updated_at)
@@ -104,7 +104,7 @@ class Scrape_skick_deep extends Command {
 
     // console.log(`Cleaning up: \n`)
     // await Event.query().where('source','skick').where() .delete()
-    Database.close()
+    // Database.close()
   }
 }
 
