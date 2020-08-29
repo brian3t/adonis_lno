@@ -1,6 +1,7 @@
 {
   "11086-us-san-diego": {
     "city": "San Diego",
-    "state": "ca"
+    "state": "ca",
+    "timezone": "PST"
   }
 }

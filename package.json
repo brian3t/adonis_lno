@@ -31,12 +31,12 @@
     "google-auth-library": "^6.0.0",
     "googleapis": "^49.0.0",
     "moment": "^2.27.0",
+    "moment-timezone": "^0.5.31",
     "mysql2": "^2.1.0",
     "normalize-url": "^5.1.0",
     "sleep": "^6.1.0",
     "sqlite3": "^4.2.0"
   },
-  "devDependencies": {},
   "autoload": {
     "App": "./app"
   }
