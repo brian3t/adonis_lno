@@ -27,9 +27,9 @@ class Scrape_skick_deep extends Command {
   }
 
   async handle(){
-    // const LIMIT = 1
-    const LIMIT = 150
-    console.log(`scrape skick deep starting`)
+    const LIMIT = 1
+    // const LIMIT = 150
+    console.log(`scrape skick bands starting`)
     const node_env = Env.get('NODE_ENV')
     let url = '', num_saved = 0, num_saved_venue = 0, html = {}
     //deep scrape all events
@@ -41,6 +41,7 @@ class Scrape_skick_deep extends Command {
 
     for (const ev of all_evs.rows) {
       console.log(`ev name`, ev.name)
+      console.log(`ev scrapeurl`, ev.scrape_url)
       ev.last_scraped_utc = new Date()
       await ev.save()
       console.log(`evmodel last updated`, ev.updated_at)
@@ -99,6 +100,15 @@ class Scrape_skick_deep extends Command {
         ven.zip = $c(zip).text()
         await ven.save()
       }
+      //now pulling band details
+      await $c('div.expanded-lineup-details > ul > li').each(async (i, band_li) => {
+        const band_anchor = await $c($c(band_li).find('div.main-details > span > a'))
+        const band_name = await band_anchor.text(), band_url = `https://songkick.com/` + await band_anchor.attr('href')
+        const band = Band.findOrCreate({name: band_name, source: 'skick'}, {name: band_name, source: 'skick', scrape_url: band_url})
+        let a = 1
+
+
+      })
     }
 
 
