@@ -31,7 +31,8 @@ class Scrape_skick_deep extends Command {
     // const LIMIT = 150
     console.log(`scrape skick bands starting`)
     const node_env = Env.get('NODE_ENV')
-    let url = '', num_saved = 0, num_saved_venue = 0, html = {}
+    const url = '', num_saved = 0, num_saved_venue = 0
+    let html = {}, band_html = {}
     //deep scrape all events
     /** @type {typeof import('knex/lib/query/builder')} */
     const all_evs = await Event.query().select('id', 'name', 'scrape_url').where('source', 'skick').where('scrape_status', 0)
@@ -52,7 +53,7 @@ class Scrape_skick_deep extends Command {
         continue
       }
       if (html.status === 404) {
-        console.error(`Error html status 404`)
+        console.error(`Error ev html status 404`)
         continue
       }
       let $c = await cheerio.load(html.data)
@@ -104,9 +105,34 @@ class Scrape_skick_deep extends Command {
       await $c('div.expanded-lineup-details > ul > li').each(async (i, band_li) => {
         const band_anchor = await $c($c(band_li).find('div.main-details > span > a'))
         const band_name = await band_anchor.text(), band_url = `https://songkick.com/` + await band_anchor.attr('href')
-        const band = Band.findOrCreate({name: band_name, source: 'skick'}, {name: band_name, source: 'skick', scrape_url: band_url})
-        let a = 1
-
+        console.log(`band name: ${band_name}`)
+        const band = await Band.findOrCreate({name: band_name}, {name: band_name, source: 'skick', scrape_url: band_url})
+        if (! (band instanceof Band)) {
+          console.error(`Cannot find or create band ${band_name}`)
+          return
+        }
+        band.source = 'skick'//no matter what the source was, for now let's focus on scraping band from songkick
+        band.scrape_url = band_url
+        await band.save()
+        const band_event = await BandEvent.findOrCreate({band_id: band.id, event_id: ev.id}, {band_id: band.id, event_id: ev.id})
+        try {
+          band_html = await axios.get(ev.scrape_url)
+        } catch (e) {
+          console.error(`axios error: ${e}`)
+        }
+        if (band_html.status === 404) {
+          console.error(`Error band html status 404`)
+        }
+        let $b = await cheerio.load(band_html.data)
+        let band_img = await $b.find('img.artist-profile-image')
+        if (band_img && typeof band_img === 'object') {
+          band_img = band_img.data('src')
+          if (band_img) {
+            band.logo = band_img
+            await band.save()
+            console.log(`band updated at` + band.updated_at)
+          }
+        }
 
       })
     }
