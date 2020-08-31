@@ -104,7 +104,7 @@ class Scrape_skick_deep extends Command {
       //now pulling band details
       await $c('div.expanded-lineup-details > ul > li').each(async (i, band_li) => {
         const band_anchor = await $c($c(band_li).find('div.main-details > span > a'))
-        const band_name = await band_anchor.text(), band_url = `https://songkick.com/` + await band_anchor.attr('href')
+        const band_name = await band_anchor.text(), band_url = `https://songkick.com` + await band_anchor.attr('href')
         console.log(`band name: ${band_name}`)
         const band = await Band.findOrCreate({name: band_name}, {name: band_name, source: 'skick', scrape_url: band_url})
         if (! (band instanceof Band)) {
@@ -116,7 +116,7 @@ class Scrape_skick_deep extends Command {
         await band.save()
         const band_event = await BandEvent.findOrCreate({band_id: band.id, event_id: ev.id}, {band_id: band.id, event_id: ev.id})
         try {
-          band_html = await axios.get(ev.scrape_url)
+          band_html = await axios.get(band_url)
         } catch (e) {
           console.error(`axios error: ${e}`)
         }
@@ -124,7 +124,7 @@ class Scrape_skick_deep extends Command {
           console.error(`Error band html status 404`)
         }
         let $b = await cheerio.load(band_html.data)
-        let band_img = await $b.find('img.artist-profile-image')
+        let band_img = await $b('div.profile-picture-wrap img.artist-profile-image')
         if (band_img && typeof band_img === 'object') {
           band_img = band_img.data('src')
           if (band_img) {
