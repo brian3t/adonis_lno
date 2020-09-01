@@ -27,17 +27,18 @@ class Scrape_skick_deep extends Command {
   }
 
   async handle(){
-    const LIMIT = 1
-    // const LIMIT = 150
+    // const LIMIT = 1
+    const LIMIT = 150
     console.log(`scrape skick bands starting`)
     const node_env = Env.get('NODE_ENV')
     const url = '', num_saved = 0, num_saved_venue = 0
     let html = {}, band_html = {}
     //deep scrape all events
     /** @type {typeof import('knex/lib/query/builder')} */
-    const all_evs = await Event.query().select('id', 'name', 'scrape_url').where('source', 'skick').where('scrape_status', 0)
+    const all_evs = await Event.query().select('id', 'name', 'scrape_url').where('source', 'skick')
+      // .where('name','Amaranthe and Battle Beast') //zsdf
+      .where('scrape_status', 0)
       .whereRaw('COALESCE(last_scraped_utc,\'1970-01-01\') < DATE_SUB(CURDATE(), INTERVAL 1 HOUR)')
-      // .where('name','Typesetter and Get Married') //asdf
       .orderBy('created_at', 'desc').limit(LIMIT).fetch()
 
     for (const ev of all_evs.rows) {
@@ -123,6 +124,8 @@ class Scrape_skick_deep extends Command {
         if (band_html.status === 404) {
           console.error(`Error band html status 404`)
         }
+        band.last_scraped = new Date()
+        band.save()
         let $b = await cheerio.load(band_html.data)
         let band_img = await $b('div.profile-picture-wrap img.artist-profile-image')
         if (band_img && typeof band_img === 'object') {
@@ -130,13 +133,25 @@ class Scrape_skick_deep extends Command {
           if (band_img) {
             band.logo = band_img
             await band.save()
-            console.log(`band updated at` + band.updated_at)
+            console.log(`band updated at ` + band.updated_at)
           }
         }
+        let b_video_link_first = await $b('div.video-standfirst iframe')
+        if (b_video_link_first && typeof b_video_link_first === 'object'){
+          b_video_link_first = b_video_link_first.attr('src') ////www.youtube-nocookie.com/embed/8lKYdrL-AAw
+          if (b_video_link_first && b_video_link_first.includes('youtube')){
+            b_video_link_first = b_video_link_first.split('/').pop()
+            if (b_video_link_first){
+              band.ytlink_first = b_video_link_first
+              band.save()
+              console.log(`band updated yt_vid at `, band.updated_at)
+            }
+          }
+          let a = 1
 
+        }
       })
     }
-
 
     // console.log(`Cleaning up: \n`)
     // await Event.query().where('source','skick').where() .delete()
