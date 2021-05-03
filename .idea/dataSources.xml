@@ -2,10 +2,20 @@
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
     <data-source source="LOCAL" name="lno USV" uuid="6015d8bd-e313-4dc7-8413-9aed7423669f">
-      <driver-ref>mysql</driver-ref>
+      <driver-ref>mysql.8</driver-ref>
       <synchronize>true</synchronize>
-      <jdbc-driver>com.mysql.jdbc.Driver</jdbc-driver>
+      <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
       <jdbc-url>jdbc:mysql://usvsolutions.com:3306/lno</jdbc-url>
+      <driver-properties>
+        <property name="serverTimezone" value="PST" />
+      </driver-properties>
+    </data-source>
+    <data-source source="LOCAL" name="lno mt" uuid="96d621e9-d059-4237-b917-451bfe1aefac">
+      <driver-ref>mysql.8</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:mysql://192.168.1.9:3306/lno</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
   </component>
 </project>
