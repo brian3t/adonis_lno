@@ -34,3 +34,6 @@ Serving LNO:
 Console app:
 - pull first youtube link and populate into bands: node ace, then choose console 
 - 
+
+### Todos:
+- find an alternative for npm package `sleep` - it's been failing too often
