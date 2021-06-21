@@ -34,7 +34,7 @@
     "moment-timezone": "^0.5.31",
     "mysql2": "^2.1.0",
     "normalize-url": "^5.1.0",
-    "sleep": "^6.1.0",
+    "sleep": "^6.3.0",
     "sqlite3": "^4.2.0"
   },
   "autoload": {

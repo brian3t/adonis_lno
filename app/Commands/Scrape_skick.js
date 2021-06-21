@@ -1,5 +1,10 @@
 'use strict'
 
+/**
+ * Scrape from Songkick.com
+ * Able to save event + venue into db
+ */
+
 const {Command} = require('@adonisjs/ace')
 const sleep = require('sleep');
 const axios = require("axios")
@@ -32,12 +37,15 @@ class Scrape_skick extends Command {
     console.log(`scrape skick starting`)
     global.conf = require('./conf/songkick.json')
     let node_env = Env.get('NODE_ENV')
-    let url = '', num_saved = 0, num_saved_venue = 0, html = {}
+    let url = '', num_saved = 0, num_saved_venue = 0, html = {}, ev_save_res, ven_save_res
     for (const metro in conf) {
       if (! conf.hasOwnProperty(metro)) continue
       let metro_conf = conf[metro]
+      const tz = metro_conf.timezone
       url = TARGET_ROOT + metro
+      console.log(`Scraping url: `, url)
       try {
+        await sleep.sleep(10)
         html = await axios.get(url)
       } catch (e) {
         console.error(`axios error: ${e}`)
@@ -60,7 +68,7 @@ class Scrape_skick extends Command {
           if (status.text && status.text() === 'Canceled' || status.text() === 'Postponed') return
           let ev_date = moment(ev_list.attribs.title, 'dddd DD MMMM YYYY')//Sunday 23 August 2020
           if (! (ev_date.isValid())) return
-          ev_name = await $ev_list.find('a.event-link > span > strong')
+          ev_name = $ev_list.find('a.event-link > span > strong')
           if (! ev_name || typeof ev_name !== 'object') return
           ev_name = ev_name.text()
           if (! ev_name || typeof ev_name !== 'string' || ev_name === '') return
@@ -70,16 +78,17 @@ class Scrape_skick extends Command {
           )
           //model initiated
 
-          ev_url = await $ev_list.find('a.event-link').attr('href')
+          ev_url = $ev_list.find('a.event-link').attr('href')
           if (! ev_url) {
             console.log(`event without url, skipped`);
             return
           }
           ev.scrape_url = `https://songkick.com` + ev_url
-          ev.date = ev_date.format('YYYY-MM-DD')
-          let artist_img = await $ev_list.find('img.artist-profile-image')
+          ev.tz = tz
+          ev.start_datetime_utc = ev_date.format('YYYY-MM-DD HH:mm:ss')
+          let artist_img = $ev_list.find('img.artist-profile-image')
           if (artist_img) ev.img = artist_img.data('src')
-          let ven_link = await $ev_list.find('a.venue-link')
+          let ven_link = $ev_list.find('a.venue-link')
           if (ven_link && ven_link.text) {
             let ven_name = ven_link.text()
             if (ven_name) {
@@ -88,14 +97,14 @@ class Scrape_skick extends Command {
                 name: ven_name, state: conf[metro].state, city: conf[metro].city
               }, {name: ven_name, source: 'skick', state: conf[metro].state, city: conf[metro].city, scrape_status: 0, scrape_msg: 'skick init'})
               ven.scrape_url = `https://songkick.com` + ven_link.attr('href')
-              await ven.save()
-              num_saved_venue++
+              ven_save_res = await ven.save()
+              if (ven_save_res) num_saved_venue++
               ev.venue_id = ven.id
               await ev.save() //link event with venue
             }
           }
-          await ev.save()
-          num_saved++
+          ev_save_res = await ev.save()
+          if (ev_save_res) num_saved++
           console.log(`num ev saved: ${num_saved} \n`)
         })
       } catch (e){
@@ -105,8 +114,9 @@ class Scrape_skick extends Command {
     }
     // console.log(`Cleaning up: \n`)
     // await Event.query().where('source','skick').where() .delete()
+    console.log(`db closing`)
     Database.close()
-    // process.exit()
+    process.exit()
   }
 }
 
