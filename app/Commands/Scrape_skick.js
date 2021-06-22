@@ -56,7 +56,7 @@ class Scrape_skick extends Command {
         continue
       }
       const $ = await cheerio.load(html.data)
-      file.writeFileSync('public/ig_skick_metro.html', html.data, (err) => {
+      file.writeFile('public/ig_skick_metro.html', html.data, (err) => {
       })
       let ev_name, ev_url
       try
@@ -72,6 +72,8 @@ class Scrape_skick extends Command {
           if (! ev_name || typeof ev_name !== 'object') return
           ev_name = ev_name.text()
           if (! ev_name || typeof ev_name !== 'string' || ev_name === '') return
+          let new_band = await Band.findOrCreate({name:'sunny war'}, {name:'sunny war'})
+
           const ev = await Event.findOrCreate(
             {name: ev_name, source: 'skick'}
             , {name: ev_name, source: 'skick', scrape_status: 0, scrape_msg: 'skick init'}

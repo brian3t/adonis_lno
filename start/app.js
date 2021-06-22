@@ -61,6 +61,7 @@ const commands = [
   'App/Commands/Scrape',
   'App/Commands/Scrape_skick',
   'App/Commands/Scrape_skick_deep',
+  'App/Commands/Test',
 ]
 
 module.exports = { providers, aceProviders, aliases, commands }
