@@ -1,7 +1,7 @@
 'use strict'
 
 const {Command} = require('@adonisjs/ace')
-const sleep = require('sleep');
+const Jslib = require('../../jslib/jslib_global')
 const axios = require("axios")
 const cheerio = require("cheerio")
 const Database = use('Database')

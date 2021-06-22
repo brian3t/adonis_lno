@@ -6,7 +6,7 @@
  */
 
 const {Command} = require('@adonisjs/ace')
-const sleep = require('sleep');
+const Jslib = require('../../jslib/jslib_global')
 const axios = require("axios")
 const cheerio = require("cheerio")
 const Database = use('Database')
@@ -45,7 +45,7 @@ class Scrape_skick extends Command {
       url = TARGET_ROOT + metro
       console.log(`Scraping url: `, url)
       try {
-        await sleep.sleep(10)
+        await Jslib.sleep(10)
         html = await axios.get(url)
       } catch (e) {
         console.error(`axios error: ${e}`)

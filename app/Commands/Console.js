@@ -3,7 +3,7 @@
 const { Command } = require('@adonisjs/ace')
 const Database = use('Database')
 const GoogleService = use('App/Services/Google')
-const sleep = require('sleep');
+const Jslib = require('../../jslib/jslib_global')
 
 class Console extends Command {
   static get signature () {
@@ -23,7 +23,7 @@ class Console extends Command {
     let yt_first_vid = {vid_id:null, thumbnail: null}
     let updated = 0
     for (const band of all_bands) {
-      sleep.sleep(10)
+      await Jslib.sleep(10)
       let banddb=BAND_DB.clone()
       yt_first_vid = await GoogleService.yt_find_first_vid(band.name + ' band')
       if (yt_first_vid === null) continue
