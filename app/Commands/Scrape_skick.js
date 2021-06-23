@@ -61,6 +61,8 @@ class Scrape_skick extends Command {
       let ev_name, ev_url
       try
       {
+        let new_band = await Band.findOrCreate({name:'sunny war'}, {name:'sunny war'})
+        console.log(`new band 65: `, new_band)
         $('li.event-listings-element').each(async function (i, ev_list){
           const $ev_list = $(this)
           if (typeof ev_list !== 'object' || ! ev_list.attribs || ! ev_list.attribs.title) return
@@ -73,6 +75,7 @@ class Scrape_skick extends Command {
           ev_name = ev_name.text()
           if (! ev_name || typeof ev_name !== 'string' || ev_name === '') return
           let new_band = await Band.findOrCreate({name:'sunny war'}, {name:'sunny war'})
+          console.log(`new band 78: `, new_band)
 
           const ev = await Event.findOrCreate(
             {name: ev_name, source: 'skick'}
