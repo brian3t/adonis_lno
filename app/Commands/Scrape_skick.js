@@ -19,6 +19,9 @@ const BandEvent = use('App/Models/BandEvent')
 const Env = use('Env')
 const moment = require('moment')
 
+// const SLEEP_TIME = 10
+const SLEEP_TIME = 5
+
 const TARGET_ROOT = 'https://www.songkick.com/metro-areas/'
 
 class Scrape_skick extends Command {
@@ -45,7 +48,7 @@ class Scrape_skick extends Command {
       url = TARGET_ROOT + metro
       console.log(`Scraping url: `, url)
       try {
-        await Jslib.sleep(10)
+        await Jslib.sleep(SLEEP_TIME)
         html = await axios.get(url)
       } catch (e) {
         console.error(`axios error: ${e}`)
@@ -62,8 +65,8 @@ class Scrape_skick extends Command {
       try
       {
         let new_band = await Band.findOrCreate({name:'sunny war'}, {name:'sunny war'})
-        console.log(`new band 65: `, new_band)
-        $('li.event-listings-element').each(async function (i, ev_list){
+        console.log(`new band 65: `, new_band.id, new_band.name)
+        $('li.event-listings-element').each(function (i, ev_list){
           const $ev_list = $(this)
           if (typeof ev_list !== 'object' || ! ev_list.attribs || ! ev_list.attribs.title) return
           let status = $ev_list.find('strong.item-state-tag')
@@ -74,10 +77,10 @@ class Scrape_skick extends Command {
           if (! ev_name || typeof ev_name !== 'object') return
           ev_name = ev_name.text()
           if (! ev_name || typeof ev_name !== 'string' || ev_name === '') return
-          let new_band = await Band.findOrCreate({name:'sunny war'}, {name:'sunny war'})
-          console.log(`new band 78: `, new_band)
+          let new_band = Band.findOrCreate({name:'sunny war'}, {name:'sunny war'})
+          console.log(`new band 78: `, new_band.id, new_band.name)
 
-          const ev = await Event.findOrCreate(
+          const ev = Event.findOrCreate(
             {name: ev_name, source: 'skick'}
             , {name: ev_name, source: 'skick', scrape_status: 0, scrape_msg: 'skick init'}
           )
@@ -98,17 +101,17 @@ class Scrape_skick extends Command {
             let ven_name = ven_link.text()
             if (ven_name) {
               /** @type {typeof import('@adonisjs/lucid/src/Lucid/Model')} */
-              const ven = await Venue.findOrCreate({
+              const ven = Venue.findOrCreate({
                 name: ven_name, state: conf[metro].state, city: conf[metro].city
               }, {name: ven_name, source: 'skick', state: conf[metro].state, city: conf[metro].city, scrape_status: 0, scrape_msg: 'skick init'})
               ven.scrape_url = `https://songkick.com` + ven_link.attr('href')
-              ven_save_res = await ven.save()
+              ven_save_res = ven.save()
               if (ven_save_res) num_saved_venue++
               ev.venue_id = ven.id
-              await ev.save() //link event with venue
+              ev.save() //link event with venue
             }
           }
-          ev_save_res = await ev.save()
+          ev_save_res = ev.save()
           if (ev_save_res) num_saved++
           console.log(`num ev saved: ${num_saved} \n`)
         })
