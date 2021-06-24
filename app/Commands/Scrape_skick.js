@@ -41,6 +41,7 @@ class Scrape_skick extends Command {
     global.conf = require('./conf/songkick.json')
     let node_env = Env.get('NODE_ENV')
     let url = '', num_saved = 0, num_saved_venue = 0, html = {}, ev_save_res, ven_save_res
+    let all_promises = []
     for (const metro in conf) {
       if (! conf.hasOwnProperty(metro)) continue
       let metro_conf = conf[metro]
@@ -49,7 +50,7 @@ class Scrape_skick extends Command {
       console.log(`Scraping url: `, url)
       try {
         await Jslib.sleep(SLEEP_TIME)
-        html = await axios.get(url)
+        html = await axios.get(url) //todob future, do not allow scraping two URLs at the same time
       } catch (e) {
         console.error(`axios error: ${e}`)
         continue
@@ -64,9 +65,7 @@ class Scrape_skick extends Command {
       let ev_name, ev_url
       try
       {
-        let new_band = await Band.findOrCreate({name:'sunny war'}, {name:'sunny war'})
-        console.log(`new band 65: `, new_band.id, new_band.name)
-        $('li.event-listings-element').each(function (i, ev_list){
+        $('li.event-listings-element').each(async function (i, ev_list){
           const $ev_list = $(this)
           if (typeof ev_list !== 'object' || ! ev_list.attribs || ! ev_list.attribs.title) return
           let status = $ev_list.find('strong.item-state-tag')
@@ -77,14 +76,14 @@ class Scrape_skick extends Command {
           if (! ev_name || typeof ev_name !== 'object') return
           ev_name = ev_name.text()
           if (! ev_name || typeof ev_name !== 'string' || ev_name === '') return
-          let new_band = Band.findOrCreate({name:'sunny war'}, {name:'sunny war'})
-          console.log(`new band 78: `, new_band.id, new_band.name)
-
-          const ev = Event.findOrCreate(
+          all_promises.push(Band.findOrCreate({name:'sunny war'}, {name:'sunny war'}))
+          const ev_promise =  Event.findOrCreate(
             {name: ev_name, source: 'skick'}
             , {name: ev_name, source: 'skick', scrape_status: 0, scrape_msg: 'skick init'}
           )
-          //model initiated
+          all_promises.push(ev_promise)
+          const ev = await ev_promise
+            //model initiated
 
           ev_url = $ev_list.find('a.event-link').attr('href')
           if (! ev_url) {
@@ -101,17 +100,23 @@ class Scrape_skick extends Command {
             let ven_name = ven_link.text()
             if (ven_name) {
               /** @type {typeof import('@adonisjs/lucid/src/Lucid/Model')} */
-              const ven = Venue.findOrCreate({
+              const ven_promise = Venue.findOrCreate({
                 name: ven_name, state: conf[metro].state, city: conf[metro].city
               }, {name: ven_name, source: 'skick', state: conf[metro].state, city: conf[metro].city, scrape_status: 0, scrape_msg: 'skick init'})
+              all_promises.push(ven_promise)
+              const ven = await ven_promise
               ven.scrape_url = `https://songkick.com` + ven_link.attr('href')
-              ven_save_res = ven.save()
+              const ven_save_promise = ven.save()
+              all_promises.push(ven_save_promise)
+              ven_save_res = await ven_save_promise
               if (ven_save_res) num_saved_venue++
               ev.venue_id = ven.id
-              ev.save() //link event with venue
+              all_promises.push(ev.save()) //link event with venue
             }
           }
-          ev_save_res = ev.save()
+          const ev_save_promise = ev.save()
+          all_promises.push(ev_save_promise)
+          ev_save_res = await ev_save_promise
           if (ev_save_res) num_saved++
           console.log(`num ev saved: ${num_saved} \n`)
         })
@@ -122,8 +127,10 @@ class Scrape_skick extends Command {
     }
     // console.log(`Cleaning up: \n`)
     // await Event.query().where('source','skick').where() .delete()
+    await Promise.all(all_promises)
     console.log(`db closing`)
     Database.close()
+    console.log(`db closed`)
     process.exit()
   }
 }
