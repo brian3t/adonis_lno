@@ -13,8 +13,11 @@ const Band = use('App/Models/Band')
 const BandEvent = use('App/Models/BandEvent')
 const Env = use('Env')
 const moment = require('moment-timezone')
+const valid_url = require('valid-url')
 
 const TARGET_ROOT = 'https://www.songkick.com/metro-areas/'
+const AXIOS_CONF = {timeout: 3000}
+
 
 class Scrape_skick_deep extends Command {
   static get signature(){
@@ -27,12 +30,13 @@ class Scrape_skick_deep extends Command {
   }
 
   async handle(){
-    // const LIMIT = 1
-    const LIMIT = 150
+    const LIMIT = 1
+    // const LIMIT = 150
     console.log(`scrape skick bands starting`)
     const node_env = Env.get('NODE_ENV')
     const url = '', num_saved = 0, num_saved_venue = 0
-    let html = {}, band_html = {}
+    let html = {}, band_html = {}, ev_save_prom, ven_save_prom, band_save_prom, ev_save_res, ven_save_res, band_save_res
+      , num_band_saved = 0, num_ev_saved = 0, num_ven_saved = 0
     //deep scrape all events
     /** @type {typeof import('knex/lib/query/builder')} */
     const all_evs = await Event.query().select('id', 'name', 'scrape_url').where('source', 'skick')
@@ -41,24 +45,44 @@ class Scrape_skick_deep extends Command {
       .whereRaw('COALESCE(last_scraped_utc,\'1970-01-01\') < DATE_SUB(CURDATE(), INTERVAL 1 HOUR)')
       .orderBy('created_at', 'desc').limit(LIMIT).fetch()
 
+    console.log(`Scraping deep songkick events, count: `, all_evs.rows.length)
+    let all_proms = []
     for (const ev of all_evs.rows) {
       console.log(`ev name`, ev.name)
       console.log(`ev scrapeurl`, ev.scrape_url)
       ev.last_scraped_utc = new Date()
-      await ev.save()
+      if (! valid_url.isUri(ev.scrape_url)) {
+        ev.scrape_status = -2
+        ev.scrape_msg = `Invalid scrape_url; skipping`
+        ev_save_prom = ev.save()
+        all_proms.push(ev_save_prom)
+        ev_save_res = await ev_save_prom
+        if (ev_save_res) num_ev_saved++
+        continue
+      }
+      ev_save_prom = ev.save()
+      all_proms.push(ev_save_prom)
+      ev_save_res = await ev_save_prom
+      if (ev_save_res) num_ev_saved++
       console.log(`evmodel last updated`, ev.updated_at)
       try {
-        html = await axios.get(ev.scrape_url)
+        html = await Jslib.sup_get(ev.scrape_url)
       } catch (e) {
         console.error(`axios error: ${e}`)
+        ev.scrape_status = -1
+        ev.scrape_msg = `axios error ${e}`
+        ev_save_prom = ev.save()
+        all_proms.push(ev_save_prom)
+        ev_save_res = await ev_save_prom
+        if (ev_save_res) num_ev_saved++
         continue
       }
       if (html.status === 404) {
         console.error(`Error ev html status 404`)
         continue
       }
-      let $c = await cheerio.load(html.data)
-      file.writeFile('public/ig_skick_event_deep.html', html.data, (err) => {
+      let $c = await cheerio.load(html.text)
+      file.writeFile('public/ig_skick_event_deep.html', html.text, (err) => {
       })
       await $c('div.additional-details-container p').each(async (i, p) => {
         let $p = await $c(p)
@@ -71,15 +95,20 @@ class Scrape_skick_deep extends Command {
             ev.scrape_status = 1
             if (ev.scrape_msg === undefined) ev.scrape_msg = ''
             ev.scrape_msg += ' | starttime in'
-            await ev.save()
+            ev_save_prom = ev.save()
+            all_proms.push(ev_save_prom)
+            ev_save_res = await ev_save_prom
+            if (ev_save_res) num_ev_saved++
           }
         }
       })
       let profile_img = await $c('img.profile-picture.event')
       if (profile_img && typeof profile_img === 'object') {
         ev.img = $c(profile_img).data('src')
-        await ev.save()
-        console.log(`evmodel last updated`, ev.updated_at)
+        ev_save_prom = ev.save()
+        all_proms.push(ev_save_prom)
+        ev_save_res = await ev_save_prom
+        if (ev_save_res) num_ev_saved++
       }
 
       //now pulling in venue details
@@ -94,13 +123,19 @@ class Scrape_skick_deep extends Command {
       const addr1 = ven_addr_lines[0]
       if (addr1 && addr1 !== '') {
         ven.address1 = $c(addr1).text()
-        await ven.save()
+        ven_save_prom = ven.save()
+        all_proms.push(ven_save_prom)
+        ven_save_res = await ven_save_prom
+        if (ven_save_res) num_ven_saved++
       }
       if (! ven_addr_lines[1]) return
       const zip = ven_addr_lines[1]
       if (zip) {
         ven.zip = $c(zip).text()
-        await ven.save()
+        ven_save_prom = ven.save()
+        all_proms.push(ven_save_prom)
+        ven_save_res = await ven_save_prom
+        if (ven_save_res) num_ven_saved++
       }
       //now pulling band details
       await $c('div.expanded-lineup-details > ul > li').each(async (i, band_li) => {
@@ -114,10 +149,13 @@ class Scrape_skick_deep extends Command {
         }
         band.source = 'skick'//no matter what the source was, for now let's focus on scraping band from songkick
         band.scrape_url = band_url
-        await band.save()
+        band_save_prom = band.save()
+        all_proms.push(band_save_prom)
+        band_save_res = await band_save_prom
+        if (band_save_res) num_band_saved++
         const band_event = await BandEvent.findOrCreate({band_id: band.id, event_id: ev.id}, {band_id: band.id, event_id: ev.id})
         try {
-          band_html = await axios.get(band_url)
+          band_html = await Jslib.sup_get(band_url, AXIOS_CONF)
         } catch (e) {
           console.error(`axios error: ${e}`)
         }
@@ -125,25 +163,34 @@ class Scrape_skick_deep extends Command {
           console.error(`Error band html status 404`)
         }
         band.last_scraped = new Date()
-        band.save()
-        let $b = await cheerio.load(band_html.data)
+        band_save_prom = band.save()
+        all_proms.push(band_save_prom)
+        band_save_res = await band_save_prom
+        if (band_save_res) num_band_saved++
+        let $b = await cheerio.load(band_html.text)
         let band_img = await $b('div.profile-picture-wrap img.artist-profile-image')
         if (band_img && typeof band_img === 'object') {
           band_img = band_img.data('src')
           if (band_img) {
             band.logo = band_img
-            await band.save()
+            band_save_prom = band.save()
+            all_proms.push(band_save_prom)
+            band_save_res = await band_save_prom
+            if (band_save_res) num_band_saved++
             console.log(`band updated at ` + band.updated_at)
           }
         }
         let b_video_link_first = await $b('div.video-standfirst iframe')
-        if (b_video_link_first && typeof b_video_link_first === 'object'){
+        if (b_video_link_first && typeof b_video_link_first === 'object') {
           b_video_link_first = b_video_link_first.attr('src') ////www.youtube-nocookie.com/embed/8lKYdrL-AAw
-          if (b_video_link_first && b_video_link_first.includes('youtube')){
+          if (b_video_link_first && b_video_link_first.includes('youtube')) {
             b_video_link_first = b_video_link_first.split('/').pop()
-            if (b_video_link_first){
+            if (b_video_link_first) {
               band.ytlink_first = b_video_link_first
-              band.save()
+              band_save_prom = band.save()
+              all_proms.push(band_save_prom)
+              band_save_res = await band_save_prom
+              if (band_save_res) num_band_saved++
               console.log(`band updated yt_vid at `, band.updated_at)
             }
           }
@@ -151,12 +198,25 @@ class Scrape_skick_deep extends Command {
 
         }
       })
+      ev.scrape_status = 1
+      ev.scrape_msg = `Finished scraping`
+      ev_save_prom = ev.save()
+      all_proms.push(ev_save_prom)
+      ev_save_res = await ev_save_prom
+      if (ev_save_res) num_ev_saved++
     }
 
-    // console.log(`Cleaning up: \n`)
-    // await Event.query().where('source','skick').where() .delete()
-    // Database.close()
+    console.log(`Events saved: `, num_ev_saved, ' | Venues saved: ', num_ven_saved, ` | Bands saved: `, num_band_saved)
+
+    console.log(`Cleaning up: \n`)
+    await Promise.all(all_proms)
+    console.log(`db closing`)
+    Database.close()
+    console.log(`db closed`)
+    process.exit()
   }
+
 }
+
 
 module.exports = Scrape_skick_deep
