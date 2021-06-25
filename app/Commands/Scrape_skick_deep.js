@@ -1,4 +1,5 @@
 'use strict'
+const log = require('why-is-node-running') // should be your first require
 
 const {Command} = require('@adonisjs/ace')
 const Jslib = require('../../jslib/jslib_global')
@@ -6,6 +7,7 @@ const axios = require("axios")
 const cheerio = require("cheerio")
 const Database = use('Database')
 const file = require('fs')
+
 const norm = require('normalize-url')
 const Event = use('App/Models/Event')
 const Venue = use('App/Models/Venue')
@@ -17,6 +19,16 @@ const valid_url = require('valid-url')
 
 const TARGET_ROOT = 'https://www.songkick.com/metro-areas/'
 const AXIOS_CONF = {timeout: 3000}
+
+const knex = require('knex')({
+  client: Env.get('DB_CONNECTION'),
+  connection: {
+    host: Env.get('DB_HOST') || '127.0.0.1',
+    user: Env.get('DB_USER') || 'admin',
+    password: Env.get('DB_PASSWORD') || 'putpw_to_env',
+    database: Env.get('DB_DATABASE') || 'putdb_name_to_env'
+  }
+})
 
 
 class Scrape_skick_deep extends Command {
@@ -39,15 +51,18 @@ class Scrape_skick_deep extends Command {
       , num_band_saved = 0, num_ev_saved = 0, num_ven_saved = 0
     //deep scrape all events
     /** @type {typeof import('knex/lib/query/builder')} */
-    const all_evs = await Event.query().select('id', 'name', 'scrape_url').where('source', 'skick')
+    const all_evs = await knex('event').where({source: 'skick', scrape_status: 0}).columns('id', 'name', 'scrape_url')
       // .where('name','Amaranthe and Battle Beast') //zsdf
-      .where('scrape_status', 0)
       .whereRaw('COALESCE(last_scraped_utc,\'1970-01-01\') < DATE_SUB(CURDATE(), INTERVAL 1 HOUR)')
-      .orderBy('created_at', 'desc').limit(LIMIT).fetch()
+      .orderBy('created_at', 'desc').limit(LIMIT)
 
-    console.log(`Scraping deep songkick events, count: `, all_evs.rows.length)
+    console.log(`Scraping deep songkick events, count: `, all_evs.length)
     let all_proms = []
-    for (const ev of all_evs.rows) {
+    setTimeout(function (){
+      log() // logs out active handles that are keeping node running
+    }, 5000)
+
+    for (const ev of all_evs) {
       console.log(`ev name`, ev.name)
       console.log(`ev scrapeurl`, ev.scrape_url)
       ev.last_scraped_utc = new Date()

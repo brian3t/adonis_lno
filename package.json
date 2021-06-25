@@ -32,13 +32,16 @@
     "google-auth-library": "^7.1.2",
     "googleapis": "^78.0.0",
     "htmlparser2": "^6.1.0",
+    "knex": "^0.21.19",
     "moment": "^2.27.0",
     "moment-timezone": "^0.5.31",
+    "mysql": "^2.18.1",
     "mysql2": "^2.1.0",
     "normalize-url": "^6.0.1",
     "sqlite3": "^5.0.2",
     "superagent": "^6.1.0",
-    "valid-url": "^1.0.9"
+    "valid-url": "^1.0.9",
+    "why-is-node-running": "^2.2.0"
   },
   "autoload": {
     "App": "./app"
