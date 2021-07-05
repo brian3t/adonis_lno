@@ -60,7 +60,6 @@ const commands = [
   'App/Commands/Console',
   'App/Commands/Scrape',
   'App/Commands/Scrape_skick',
-  'App/Commands/Scrape_skick_deep',
   'App/Commands/Test',
 ]
 
