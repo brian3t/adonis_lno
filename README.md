@@ -36,4 +36,4 @@ Console app:
 - 
 
 ### Todos:
-- find an alternative for npm package `sleep` - it's been failing too often
+-- migrate to Sailsjs
