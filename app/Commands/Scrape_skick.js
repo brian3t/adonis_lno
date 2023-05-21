@@ -60,7 +60,8 @@ class Scrape_skick extends Command {
         continue
       }
       const $ = await cheerio.load(html.data)
-      file.writeFile('public/ig_skick_metro.html', html.data, (err) => {
+      await file.writeFileSync('public/ig_skick_metro.html', html.data, (err) => {
+        console.info('Failed writing to ig_skick_metro', err.message.substring(0, 800))
       })
       let ev_name, ev_url
       try
@@ -72,7 +73,7 @@ class Scrape_skick extends Command {
           if (status.text && status.text() === 'Canceled' || status.text() === 'Postponed') return
           let ev_date = moment(ev_list.attribs.title, 'dddd DD MMMM YYYY')//Sunday 23 August 2020
           if (! (ev_date.isValid())) return
-          ev_name = $ev_list.find('a.event-link > span > strong')
+          ev_name = $ev_list.find('a.event-link > strong')
           if (! ev_name || typeof ev_name !== 'object') return
           ev_name = ev_name.text()
           if (! ev_name || typeof ev_name !== 'string' || ev_name === '') return
@@ -125,6 +126,9 @@ class Scrape_skick extends Command {
       }
       console.log(`For metro ${metro}, we scraped ${num_saved} events; ${num_saved_venue} venues.\n`)
     }
+    const ev_clean_promise = await Event.query().where('start_datetime_utc', null).delete()
+
+    all_promises.push(ev_clean_promise)
     // console.log(`Cleaning up: \n`)
     // await Event.query().where('source','skick').where() .delete()
     await Promise.all(all_promises)

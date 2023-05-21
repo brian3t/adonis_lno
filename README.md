@@ -35,5 +35,11 @@ Console app:
 - pull first youtube link and populate into bands: node ace, then choose console 
 - 
 
+### Cronjobs:
+```
+node ace scrape
+node ace scrape_skick
+```
+
 ### Todos:
 -- migrate to Sailsjs

@@ -36,9 +36,14 @@ class Scrape extends Command {
       .from('event as e').leftOuterJoin('band_event as be', 'e.id', 'event_id')
       .where('source', 'sdr').andWhere('be.id', null).andWhere('e.last_scraped_utc', null).orderBy('e.created_at', 'desc').limit(LIMIT)
       .fetch()
+    /*const all_evs_wo_img = await Event.query().select('e.id AS id', 'e.source', 'e.website', 'e.sdr_name')
+      .from('event as e')
+      .where('e.img', null).orWhere('e.img','').orderBy('e.created_at', 'desc').limit(LIMIT)
+      .fetch()*/
     let event_url = '', num_saved = 0
-    var $c = {}, $d = {}
-    for (const event_model of all_evs_wo_band_qb.rows) {
+    // let $c = {}, $d = {};
+    const evs_to_scrape = all_evs_wo_band_qb.rows//.concat(all_evs_wo_img.rows)
+    for (const event_model of evs_to_scrape) {
       event_model.last_scraped_utc = (new Date())
       event_model.save()
       // if (node_env === 'live') setTimeout(()=>{}, 8000)
@@ -58,7 +63,8 @@ class Scrape extends Command {
         continue
       }
       $c = await cheerio.load(html.data)
-      file.writeFile('public/ig_sdr_event.html', html.data, (err) => {
+      await file.writeFileSync('public/ig_sdr_event.html', html.data, (err) => {
+        console.info('Error writing to ig_sdr_event', err.message.substring(0, 800))
       })
       $c('#related-links').each((i, related_link) => {
         let event_a = $c(related_link).find('a:contains("website")')
