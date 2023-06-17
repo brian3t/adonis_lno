@@ -57,6 +57,7 @@ const aliases = {}
 |
 */
 const commands = [
+  'App/Commands/Asdf',
   'App/Commands/Console',
   'App/Commands/Scrape',
   'App/Commands/Scrape_skick',

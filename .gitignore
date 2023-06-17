@@ -15,3 +15,4 @@ database/*.sqlite
 # VSCode & Webstorm history directories
 .history
 public/ig*
+/.idea/
